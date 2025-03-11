@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de DNS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea, button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #dff0d8;
+            padding: 5px;
+            border: 1px solid #d0e9c6;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Verificador de DNS</h1>
+    <textarea id="textInput" rows="10" placeholder="Cole seu texto aqui..."></textarea>
+    <button onclick="checkDNS()">Verificar DNS</button>
+    <div id="results"></div>
+
+    <script>
+        const TARGET_IP = '35.199.71.74';
+
+        async function checkDNS() {
+            const text = document.getElementById('textInput').value;
+            const links = extractLinks(text);
+            const resultsContainer = document.getElementById('results');
+            
+            resultsContainer.innerHTML = ''; // Clear previous results
+            
+            for (const link of links) {
+                try {
+                    const dnsResult = await fetchDNS(link);
+                    const isTargetIP = dnsResult.includes(TARGET_IP);
+                    const resultHTML = `<p class="${isTargetIP ? 'highlight' : ''}"><strong>${link}</strong>: ${dnsResult}</p>`;
+                    resultsContainer.innerHTML += resultHTML;
+                } catch (error) {
+                    resultsContainer.innerHTML += `<p><strong>${link}</strong>: Erro ao verificar</p>`;
+                }
+            }
+        }
+
+        function extractLinks(text) {
+            const regex = /https?:\/\/[^\s]+/g;
+            return text.match(regex) || [];
+        }
+
+        async function fetchDNS(url) {
+            // Remove "http://" or "https://" from the URL for DNS lookup
+            const hostname = new URL(url).hostname;
+            
+            // Fetch DNS information using an external API
+            try {
+                const response = await fetch(`https://dns.google.com/resolve?name=${hostname}&type=A`);
+                const data = await response.json();
+                
+                if (data.Answer) {
+                    return data.Answer.map(answer => answer.data).join(', ');
+                } else {
+                    return 'Não encontrado';
+                }
+            } catch (error) {
+                return 'Erro ao consultar DNS';
+            }
+        }
+    </script>
+</body>
+</html>

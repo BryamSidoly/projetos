@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFX para PEM</title>
+    <script src="https://cdn.jsdelivr.net/npm/node-forge@0.10.0/dist/forge.min.js"></script>
+</head>
+<body>
+    <h1>PFX para PEM</h1>
+
+    <!-- Botão para selecionar o arquivo PFX -->
+    <input type="file" id="pfxInput" />
+    <br><br>
+
+    <!-- Campo para inserir a senha, se tiver -->
+    <input type="password" id="pfxPassword" placeholder="Senha do PFX (opcional)" />
+    <br><br>
+
+    <!-- Botão para iniciar o processo -->
+    <button onclick="processPFX()">Extrair</button>
+
+    <!-- Área para exibir mensagens -->
+    <pre id="output"></pre>
+
+    <script>
+        //tratamento para o formato de arquivo
+        function arrayBufferToString(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return binary;
+        }
+        //funçãozinha padrao para baixar o arquivo como se fosse um "link"
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'application/x-pem-file' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        //processar o PFX
+        function processPFX() {
+            const pfxFile = document.getElementById('pfxInput').files[0];  // Obtenha o arquivo PFX selecionado
+            const password = document.getElementById('pfxPassword').value; // Obtenha a senha, se houver
+            const output = document.getElementById('output');              // Elemento para exibir a saída
+            
+            //limpa a saida anterior se o nome do arquivo for diferente
+            output.innerHTML = '';
+
+            if (!pfxFile) {
+                output.innerHTML = "<h3>Por favor, selecione um arquivo .pfx.</h3>";
+                return;
+            }
+
+            const reader = new FileReader();//abre o explorador de arquivos
+            reader.onload = function(event) {
+                try {
+                    const pfxData = arrayBufferToString(event.target.result);  // converte ArrayBuffer para string
+                    const pfxAsn1 = forge.asn1.fromDer(pfxData);                // converter para ASN.1
+                    
+                    // decodifica o PFX usando a chave PKCS#12
+                    const pkcs12 = forge.pkcs12.pkcs12FromAsn1(pfxAsn1, false, password);
+
+                    // 1. Exportar a chave privada
+                    const keyBags = pkcs12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                    const privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
+                    const privateKeyPem = forge.pki.privateKeyToPem(privateKey);
+                    
+                    // 2. Exportar o certificado
+                    const certBags = pkcs12.getBags({ bagType: forge.pki.oids.certBag });
+                    const certificate = certBags[forge.pki.oids.certBag][0].cert;
+                    const certificatePem = forge.pki.certificateToPem(certificate);
+
+                    // 3. Remove a senha da chave privada
+                    const privateKeyWithoutPassPem = forge.pki.privateKeyToPem(privateKey);
+
+                    // 4. disponibiliza os arquivos como .pem
+                    downloadFile('chave-privada.pem', privateKeyWithoutPassPem); // Baixar chave privada
+                    downloadFile('certificado-chave-publica.pem', certificatePem); // Baixar certificado público
+
+                    output.innerHTML += "<h3>Certificados .PEM exportados com sucesso!</h3>";
+                    
+                } catch (err) {
+                    output.innerHTML = "<h3>Erro:</h3><pre>" + err.message + "</pre>";
+                }
+            };
+
+            // Ler o arquivo PFX como ArrayBuffer para garantir
+            reader.readAsArrayBuffer(pfxFile);
+        }
+    </script>
+</body>
+</html>

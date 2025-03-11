@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Links de Parceiros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #4a4a4a;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #4a4a4a;
+        }
+
+        input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #9444c3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #440044;
+        }
+
+        .round-button {
+            background-color: #cc00ff;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .round-button:hover {
+            background-color: #4d005b;
+        }
+
+        .output {
+            margin-top: 20px;
+        }
+
+        .output table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .output table, .output th, .output td {
+            border: 1px solid #ddd;
+        }
+
+        .output th, .output td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .output th {
+            background-color: #f2f2f2;
+        }
+
+        .partner-codes {
+            margin-bottom: 20px;
+        }
+
+        .partner-codes .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .input-group textarea {
+            margin-top: 10px;
+        }
+
+        .export-btn {
+            margin-top: 20px;
+        }
+
+        .checkbox-group {
+            margin-bottom: 20px;
+        }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gerador de Links de Parceiros</h1>
+    
+    <label for="subdomain">Subdomínio (Link do E-commerce):</label>
+    <input type="text" id="subdomain" placeholder="Exemplo: ingressos.subdominio.com.br" required>
+    <div id="subdomain-error" class="error"></div>
+
+    <label for="division">Nome da Divisão:</label>
+    <input type="text" id="division" placeholder="Exemplo: teste">
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="list-mode" onchange="toggleMode()">
+        <label for="list-mode">Modo Lista</label>
+    </div>
+
+    <div class="partner-codes">
+        <div class="input-group" id="single-code-group">
+            <label for="partner-code">Código do Parceiro sem ponto:</label>
+            <input type="text" id="single-partner-code" placeholder="Exemplo: codigo_parceiro" required>
+            <button class="round-button" onclick="addPartnerCode()">+</button>
+        </div>
+
+        <div class="input-group" id="list-code-group" style="display: none;">
+            <label for="partner-codes-input">Cole lista de Códigos do Parceiro (um por linha):</label>
+            <textarea id="partner-codes-input" rows="5" placeholder="Exemplo: codigo_parceiro"></textarea>
+            <button type="button" onclick="processPartnerCodes()">Adicionar Códigos da Lista</button>
+        </div>
+
+        <div id="additional-codes"></div>
+    </div>
+
+    <button onclick="generateLinks()">Gerar Links</button>
+    <button class="export-btn" onclick="exportToExcel()">Exportar para Excel</button>
+
+    <div class="output" id="output"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+
+// Função para validar se o subdomínio contém pelo menos uma extensão válida
+function validateSubdomain(subdomain) {
+    const errorElement = document.getElementById('subdomain-error');
+    const validExtensions = ['.com', '.br', '.net', '.org', '.gov', '.edu', '.info', '.biz'];
+
+    if (subdomain.trim() === '') {
+        errorElement.textContent = 'O campo de subdomínio não pode estar vazio.';
+        return false;
+    }
+
+    // Remove o esquema (http:// ou https://) antes da validação
+    const sanitizedSubdomain = subdomain.replace(/https?:\/\//, '').replace(/\/$/, '');
+
+    // Cria uma expressão regular para verificar se contém ao menos uma extensão válida
+    const regex = new RegExp(`(${validExtensions.map(ext => '\\' + ext).join('|')})$`, 'i');
+
+    if (!regex.test(sanitizedSubdomain)) {
+        errorElement.textContent = `O subdomínio deve terminar com pelo menos uma extensão válida (${validExtensions.join(', ')}).`;
+        return false;
+    }
+
+    errorElement.textContent = ''; // Limpa a mensagem de erro
+    return true;
+}
+
+
+// Geração dos links com validação
+function generateLinks() {
+    let subdomain = document.getElementById('subdomain').value.trim();
+    let division = document.getElementById('division').value.trim();
+
+    if (!validateSubdomain(subdomain)) {
+        return; // Se a validação falhar, parar a execução
+    }
+
+    // Garante que o subdomínio comece com "https://"
+    if (!subdomain.startsWith("https://")) {
+        subdomain = "https://" + subdomain;
+    }
+
+    // Remove barra final do subdomínio, se existir
+    if (subdomain.endsWith("/")) {
+        subdomain = subdomain.slice(0, -1);
+    }
+
+    let partnerCodes = document.querySelectorAll('.partner-code-input');
+    let outputHtml = '<table><tr><th>Código do Parceiro</th><th>Link Gerado</th><th>QR Code</th><th>Ações</th></tr>';
+    
+    partnerCodes.forEach(input => {
+        // Converte o código do parceiro para uppercase e substitui espaços por "_"
+        let partnerCode = input.value.trim().replace(/\s+/g, '_').toUpperCase();
+        if (partnerCode) {
+            const finalLink = division
+                ? `${subdomain}/d/${division}?/promo/${partnerCode}/`
+                : `${subdomain}/promo/${partnerCode}/`;
+
+            // Gerar QR Code
+            const qr = qrcode(0, 'L');
+            qr.addData(finalLink);
+            qr.make();
+            const qrCodeUrl = qr.createDataURL();
+
+            outputHtml += `<tr>
+                <td>${partnerCode}</td>
+                <td><a href="${finalLink}" target="_blank">${finalLink}</a></td>
+                <td><img src="${qrCodeUrl}" alt="QR Code"></td>
+                <td><button type="button" onclick="removeRow(this)">X</button></td>
+            </tr>`;
+        }
+    });
+
+    outputHtml += '</table>';
+    document.getElementById('output').innerHTML = outputHtml;
+}
+
+
+// Função para exportar para Excel
+function exportToExcel() {
+    const table = document.querySelector('#output table');
+    if (table) {
+        let workbook = new ExcelJS.Workbook();
+        let worksheet = workbook.addWorksheet('Links de Parceiros');
+
+        worksheet.columns = [
+            { header: 'Código do Parceiro', key: 'code', width: 30 },
+            { header: 'Link Gerado', key: 'link', width: 50 },
+            { header: 'QR Code', key: 'qr', width: 30 }
+        ];
+
+        table.querySelectorAll('tr').forEach((row, rowIndex) => {
+            if (rowIndex > 0) {
+                const code = row.cells[0].textContent;
+                const link = row.cells[1].textContent;
+
+                worksheet.addRow({ code: code, link: link });
+
+                const img = row.cells[2].querySelector('img');
+                if (img) {
+                    const imageId = workbook.addImage({
+                        base64: img.src,
+                        extension: 'png'
+                    });
+                    worksheet.addImage(imageId, {
+                        tl: { col: 2, row: rowIndex },
+                        ext: { width: 100, height: 100 }
+                    });
+                }
+            }
+        });
+
+        workbook.xlsx.writeBuffer().then(function(buffer) {
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'links_de_parceiros.xlsx';
+            link.click();
+        });
+    }
+}
+
+// Função para alternar entre modo de lista e modo único
+function toggleMode() {
+    const listMode = document.getElementById('list-mode').checked;
+    document.getElementById('single-code-group').style.display = listMode ? 'none' : 'flex';
+    document.getElementById('list-code-group').style.display = listMode ? 'flex' : 'none';
+}
+
+// Função para adicionar código individual à lista de links
+function addPartnerCode() {
+    const partnerCodeInput = document.getElementById('single-partner-code');
+    const partnerCode = partnerCodeInput.value.trim().replace(/\s+/g, '_').toLowerCase();
+    if (partnerCode) {
+        const additionalCodes = document.getElementById('additional-codes');
+        const inputGroup = document.createElement('div');
+        inputGroup.classList.add('input-group');
+        inputGroup.innerHTML = `
+            <input type="text" class="partner-code-input" value="${partnerCode}" readonly>
+            <button type="button" onclick="removePartnerCode(this)">X</button>
+        `;
+        additionalCodes.appendChild(inputGroup);
+        partnerCodeInput.value = ''; // Limpar o campo de entrada
+    }
+}
+
+// Função para adicionar múltiplos códigos a partir da lista
+function processPartnerCodes() {
+    const partnerCodesInput = document.getElementById('partner-codes-input').value.trim();
+    if (partnerCodesInput) {
+        const codes = partnerCodesInput.split('\n').map(code => code.trim().replace(/\s+/g, '_').toLowerCase());
+        const additionalCodes = document.getElementById('additional-codes');
+
+        codes.forEach(code => {
+            if (code) {
+                const inputGroup = document.createElement('div');
+                inputGroup.classList.add('input-group');
+                inputGroup.innerHTML = `
+                    <input type="text" class="partner-code-input" value="${code}" readonly>
+                    <button type="button" onclick="removePartnerCode(this)">X</button>
+                `;
+                additionalCodes.appendChild(inputGroup);
+            }
+        });
+
+        document.getElementById('partner-codes-input').value = ''; // Limpar a área de texto
+    }
+}
+
+// Função para remover código da lista
+function removePartnerCode(button) {
+    button.parentElement.remove();
+}
+
+// Função para remover uma linha da tabela de links gerados
+function removeRow(button) {
+    const row = button.parentElement.parentElement;
+    row.remove();
+}
+
+</script>
+</body>
+</html>
