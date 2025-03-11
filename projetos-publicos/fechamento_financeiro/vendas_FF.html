@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autenticação e Filtro de Datas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 400px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            height: 40px;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            height: 40px;
+            background-color: #6c217e;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #5a1a67;
+        }
+
+        #log-box {
+            width: 100%;
+            height: 200px;
+            margin-top: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            overflow-y: auto;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Filtro de Datas</h2>
+        <form id="form">
+            <label for="data-inicial">Data Inicial</label>
+            <input type="date" id="data-inicial" name="data-inicial">
+
+            <label for="data-final">Data Final</label>
+            <input type="date" id="data-final" name="data-final">
+
+            <button type="submit">Enviar</button>
+            <button id="downloadBtn" type="button" style="display:none;" onclick="gerarPlanilha()">Baixar
+                Planilha</button>
+        </form>
+        <div id="log-box"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+
+    <script>
+        const corsProxy = "https://cors-anywhere.herokuapp.com/";
+        const apiBaseUrl = "https://card.limbersoftware.com.br/api";
+        let bearerToken = "";
+        let idParceiros = [];
+        let vendasDetalhadas = [];
+
+        function logToBox(message) {
+            const logBox = document.getElementById("log-box");
+            logBox.textContent += message + "\n";
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        const originalConsoleLog = console.log;
+        console.log = function (...args) {
+            originalConsoleLog(...args);
+            logToBox(args.join(' '));
+        };
+
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            originalConsoleError(...args);
+            logToBox("ERROR: " + args.join(' '));
+        };
+
+        async function autenticar() {
+            const url = `${corsProxy}${apiBaseUrl}/auth`;
+            const dados = { usuario: "API_FF1234", senha: "aPI_FF1234" };
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dados)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    bearerToken = data.token;
+                    idParceiros = data.parceiros.map(p => p.idparceiro);
+                    console.log("Token armazenado:", bearerToken);
+                    console.log("ID Parceiros:", idParceiros);
+                } else {
+                    console.error("Erro na autenticação:", response.status);
+                }
+            } catch (error) {
+                console.error("Erro na requisição:", error);
+            }
+        }
+
+        async function buscarVendaDetalhada(codigo) {
+            const url = `${corsProxy}${apiBaseUrl}/vendas/venda/${codigo}`;
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${bearerToken}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (response.ok) {
+                    const venda = await response.json();
+                    console.log(`Venda ${codigo}:`, venda);
+                    return venda;
+                } else {
+                    console.error(`Erro ao buscar venda ${codigo}:`, response.status);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Erro na requisição de venda:", error);
+                return null;
+            }
+        }
+
+        async function buscarVendas(dataInicial, dataFinal) {
+            for (let idParceiro of idParceiros) {
+                const vendas = await buscarVendasPorParceiro(dataInicial, dataFinal, idParceiro);
+                for (let codigo of vendas) {
+                    const vendaDetalhada = await buscarVendaDetalhada(codigo);
+                    if (vendaDetalhada) {
+                        vendasDetalhadas.push(vendaDetalhada);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+            console.log("Vendas detalhadas:", vendasDetalhadas);
+            document.getElementById("downloadBtn").style.display = "inline-block";
+        }
+
+        function gerarPlanilha() {
+            if (vendasDetalhadas.length === 0) {
+                alert("Nenhuma venda encontrada para exportação.");
+                return;
+            }
+            const colunas = Object.keys(vendasDetalhadas[0]);
+            const dadosPlanilha = vendasDetalhadas.map((venda) => {
+                return colunas.map((campo) => {
+                    const valor = venda[campo];
+                    return valor === null || valor === undefined ? "" : valor;
+                });
+            });
+            const planilhaDados = [colunas, ...dadosPlanilha];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(planilhaDados);
+            XLSX.utils.book_append_sheet(wb, ws, "Vendas");
+            XLSX.writeFile(wb, "vendas_detalhadas.xlsx");
+        }
+
+        async function buscarVendasPorParceiro(dataInicial, dataFinal, idParceiro) {
+            const url = `${corsProxy}${apiBaseUrl}/vendas?dataVendaInit=${dataInicial}&dataVendaFim=${dataFinal}&statusArray=A,C&estabelecDest=${idParceiro}`;
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${bearerToken}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (response.ok) {
+                    const vendas = await response.json();
+                    console.log(`Vendas para o ID Parceiro ${idParceiro}:`, vendas);
+                    return vendas.map(venda => venda.codigo);
+                } else {
+                    console.error(`Erro ao buscar vendas para ID Parceiro ${idParceiro}:`, response.status);
+                    return [];
+                }
+            } catch (error) {
+                console.error("Erro na requisição de vendas:", error);
+                return [];
+            }
+        }
+
+        document.getElementById("form").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const dataInicial = document.getElementById("data-inicial").value;
+            const dataFinal = document.getElementById("data-final").value;
+            if (!dataInicial || !dataFinal) {
+                alert("Por favor, selecione as datas.");
+                return;
+            }
+            const dataInicialObj = new Date(dataInicial);
+            const dataFinalObj = new Date(dataFinal);
+            if (dataInicialObj > dataFinalObj) {
+                alert("A data inicial não pode ser maior que a data final.");
+                return;
+            }
+
+            console.log("Buscando vendas de:", dataInicial, "até", dataFinal);
+            await buscarVendas(dataInicial, dataFinal);
+        });
+
+        document.getElementById("downloadBtn").addEventListener("click", gerarPlanilha);
+        window.onload = autenticar;
+    </script>
+
+</body>
+
+</html>

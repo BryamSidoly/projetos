@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta SKU e Estoque</title>
+</head>
+<body>
+    <h1>Consulta de SKU e Estoque</h1>
+
+    <h2>SKU</h2>
+    <table id="tabelaSku">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Nome</th>
+                <!-- Adicione mais colunas conforme necessário -->
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Estoque</h2>
+    <table id="tabelaEstoque">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>SKU</th>
+                <th>ID Parceiro</th>
+                <th>Meio de Venda</th>
+                <th>Quantidade</th>
+                <th>Receita</th>
+                <!-- Adicione mais colunas conforme necessário -->
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Função para obter a data de amanhã no formato necessário
+        function obterDataAmanha() {
+            const dataAmanha = new Date();
+            dataAmanha.setDate(dataAmanha.getDate() + 1);
+
+            const formatoData = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' };
+            const dataFormatada = dataAmanha.toLocaleString('en-US', formatoData);
+
+            return dataFormatada;
+        }
+
+        // Função para fazer a requisição de SKU
+        function fazerRequisicaoSku() {
+            const urlSku = 'https://testes.card.limbersoftware.com.br/api/cross/consulta/sku';
+            const dadosSku = {
+                idParceiro: 512,
+                sku: 0
+            };
+
+            const token = 'SeuTokenAqui'; // Substitua com o seu token
+
+            const optionsSku = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(dadosSku)
+            };
+
+            fetch(urlSku, optionsSku)
+                .then(response => response.json())
+                .then(dataSku => {
+                    const matrizSku = [];
+                    dataSku.forEach(item => {
+                        const linhaSku = [];
+                        for (const key in item) {
+                            linhaSku.push(`${key}: ${item[key]}`);
+                        }
+                        matrizSku.push(linhaSku);
+                    });
+
+                    const tabelaSku = document.getElementById('tabelaSku');
+                    const tbodySku = tabelaSku.querySelector('tbody');
+
+                    matrizSku.forEach(linhaSku => {
+                        const tr = document.createElement('tr');
+                        linhaSku.forEach(dado => {
+                            const td = document.createElement('td');
+                            td.textContent = dado;
+                            tr.appendChild(td);
+                        });
+                        tbodySku.appendChild(tr);
+                    });
+
+                    // Aguarda 1 segundo antes de fazer a próxima requisição
+                    setTimeout(fazerRequisicaoEstoque, 1000);
+                })
+                .catch(error => console.error('Erro na requisição de SKU:', error));
+        }
+
+        // Função para fazer a requisição de Estoque
+        function fazerRequisicaoEstoque() {
+            const urlEstoque = 'https://testes.card.limbersoftware.com.br/api/cross/consulta/disponibilidade/estoque';
+            const dadosEstoque = matrizSku.map(item => {
+                const receita = item.find(info => info.includes('receita')).split(': ')[1];
+                return {
+                    data: obterDataAmanha(),
+                    sku: item.find(info => info.includes('sku')).split(': ')[1],
+                    idParceiro: 512,
+                    meioVenda: 'WEB',
+                    quantidade: null,
+                    receita: receita
+                };
+            });
+
+            const token = 'SeuTokenAqui'; // Substitua com o seu token
+
+            const optionsEstoque = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(dadosEstoque)
+            };
+
+            fetch(urlEstoque, optionsEstoque)
+                .then(response => response.json())
+                .then(dataEstoque => {
+                    const matrizEstoque = [];
+                    dataEstoque.forEach(item => {
+                        const linhaEstoque = [];
+                        for (const key in item) {
+                            linhaEstoque.push(`${key}: ${item[key]}`);
+                        }
+                        matrizEstoque.push(linhaEstoque);
+                    });
+
+                    const tabelaEstoque = document.getElementById('tabelaEstoque');
+                    const tbodyEstoque = tabelaEstoque.querySelector('tbody');
+
+                    matrizEstoque.forEach(linhaEstoque => {
+                        const tr = document.createElement('tr');
+                        linhaEstoque.forEach(dado => {
+                            const td = document.createElement('td');
+                            td.textContent = dado;
+                            tr.appendChild(td);
+                        });
+                        tbodyEstoque.appendChild(tr);
+                    });
+                })
+                .catch(error => console.error('Erro na requisição de Estoque:', error));
+        }
+
+        // Inicia o processo fazendo a primeira requisição de SKU
+        fazerRequisicaoSku();
+    </script>
+</body>
+</html>

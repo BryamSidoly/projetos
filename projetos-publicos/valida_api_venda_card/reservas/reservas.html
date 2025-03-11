@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Vendas</title>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" integrity="sha512-2z98JiCBvjRY/BYFqOc3anYiBqyey+9zEw9EjsiWDEdpu80u8oA9LS4C1ZP3REgJlrs7XsyGBiiJbn6o/5Z/Mg==" crossorigin="anonymous" />
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js" integrity="sha512-5fGo2MBCEwIQbNri3vUIR/YDcPd5oE5iDxntRXPg7efltuqW8Mlg+xW1By7DDVfS2FJAE24bph4W26jtrr+Z4A==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js" integrity="sha512-ONm3tBYX6myt2oA3FAxhGy6sZHszw24gq/M2vQFfNwP4M6Yi0EbTtnFz95lwiJqeDSqQkB47jXH8l6d+7SmOHg==" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth'
+            });
+            calendar.render();
+        });
+    </script>
+    <script>
+        $( function() {
+            $( "#datepicker" ).datepicker();
+        } );
+    </script>
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Formulário de Vendas</h2>
+    <form>
+        <div class="form-group">
+            <p>Date: <input type="text" id="datepicker"></p>
+        </div>
+        <div class="form-group">
+            <label for="quantidade">Quantidade:</label>
+            <input type="number" class="form-control" id="quantidade" placeholder="Digite a quantidade" required>
+        </div>
+        <div>
+                    <!-- aqui tem que por alguma coisa pra armazenar a data ou pegar a data atual-->
+        <input type="hidden" id="data_selecionada" name="data_selecionada">
+        
+        <div class="form-group">
+            <label for="nome">Nome:</label>
+            <input type="text" class="form-control" id="nome" name="nome" placeholder="Digite seu nome" required>
+        </div>
+        <div class="form-group">
+            <label for="tipo_documento">Tipo de Documento:</label>
+            <select class="form-control" id="tipo_documento" name="tipo_documento" required>
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="passaporte">Passaporte</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="cpf_cnpj_passaporte">CPF, CNPJ ou Passaporte:</label>
+            <input type="text" class="form-control" id="cpf_cnpj_passaporte" name="cpf_cnpj_passaporte" placeholder="Digite CPF, CNPJ ou Passaporte" required>
+        </div>
+
+        </div>
+        <input type="hidden" id="data_selecionada" name="data_selecionada">
+        <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
+</div>
+<script>
+    $(document).ready(function() {
+        $('#calendario').fullCalendar({
+            selectable: true,
+            select: function(start, end, jsEvent, view) {
+                $("#data_selecionada").val(start.format('YYYY-MM-DD'));
+            }
+        });
+        $("#formulario").submit(function(event) {
+            //tipo de documento
+            var tipoDocumento = $("#tipo_documento").val();
+            var cpfCnpjPassaporte = $("#cpf_cnpj_passaporte").val();
+
+            if (!validarDocumento(tipoDocumento, cpfCnpjPassaporte)) {
+                alert("Documento inválido");
+                event.preventDefault();
+            }
+        });
+        // validador de documento cabuloso que ainda nao existe mas vai
+        function validarDocumento(tipoDocumento, valor) {
+            switch (tipoDocumento) {
+                case "cpf":
+                    return valor.length > 0;
+                case "cnpj":
+                    return valor.length > 0;
+                case "passaporte":
+                    return valor.length > 0;
+                default:
+                    return false;
+            }
+        }
+    });
+</script>
+</body>
+</html>

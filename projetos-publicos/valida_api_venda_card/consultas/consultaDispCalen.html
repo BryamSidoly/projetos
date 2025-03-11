@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="consultaDispCalen.css">
+  <title>Consulta JSON</title>
+</head>
+<body>
+
+  <form id="consultaForm">
+    <div>
+      <input type="datetime-local" id="dataInicial" name="dataInicial" required placeholder="Data Inicial">
+    </div>
+    
+    <div>
+      <input type="datetime-local" id="dataFinal" name="dataFinal" required placeholder="Data Final">
+    </div>
+
+    <input type="text" id="sku" name="sku" required placeholder="Código do SKU">
+    <input type="text" id="idParceiro" name="idParceiro" required placeholder="ID do Parceiro">
+    <input type="text" id="meioVenda" name="meioVenda" required placeholder="Meio de Venda">
+    <input type="text" id="localEmbarque" name="localEmbarque" required placeholder="ID do Local de Embarque">
+    <input type="text" id="receita" name="receita" required placeholder="Receita">
+    <input type="number" id="quantidade" name="quantidade" placeholder="Quantidade">
+
+    <button type="button" onclick="consultarJSON()">Consultar JSON</button>
+  </form>
+
+  <script>
+    function preencherDataAtual() {
+      var dataAtual = new Date();
+      var ano = dataAtual.getFullYear();
+      var mes = ('0' + (dataAtual.getMonth() + 1)).slice(-2);
+      var dia = ('0' + dataAtual.getDate()).slice(-2);
+      var hora = ('0' + dataAtual.getHours()).slice(-2);
+      var minuto = ('0' + dataAtual.getMinutes()).slice(-2);
+      
+      var dataFormatada = ano + '-' + mes + '-' + dia + 'T' + hora + ':' + minuto;
+
+      document.getElementById('dataInicial').value = dataFormatada;
+      document.getElementById('dataFinal').value = dataFormatada;
+    }
+
+    preencherDataAtual();
+
+    async function consultarJSON() {
+      var dataInicial = document.getElementById('dataInicial').value;
+      var dataFinal = document.getElementById('dataFinal').value;
+      var sku = document.getElementById('sku').value;
+      var idParceiro = document.getElementById('idParceiro').value;
+      var meioVenda = document.getElementById('meioVenda').value;
+      var localEmbarque = document.getElementById('localEmbarque').value;
+      var receita = document.getElementById('receita').value;
+      var quantidade = document.getElementById('quantidade').value;
+      
+      var data = {
+        dataInicial: dataInicial,
+        dataFinal: dataFinal,
+        sku: sku,
+        idParceiro: idParceiro,
+        meioVenda: meioVenda,
+        localEmbarque: localEmbarque,
+        receita: receita,
+        quantidade: quantidade
+      };
+
+      var jsonData = JSON.stringify(data); // definir jsonData 
+
+      var corsProxy = "https://cors-anywhere.herokuapp.com/";
+      var apiUrl = corsProxy + 'https://card.limbersoftware.com.br/api/cross/consulta/sku';
+      var autenticacaoToken = localStorage.getItem('token'); // Pega o token do localStorage
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          body: jsonData,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + autenticacaoToken,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Falha na requisição. Código de status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        console.log(responseData);
+
+      } catch (error) {
+        console.error('Erro na consulta:', error);
+      }
+    }
+  </script>
+
+</body>
+</html>

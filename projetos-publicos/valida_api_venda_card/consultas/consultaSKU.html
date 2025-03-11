@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta SKU</title>
+</head>
+
+<body>
+    <div id="idParceiroContainer"></div>
+    <div id="resultContainer"></div>
+
+    <script>
+        const parceirosInfo = [];
+
+        async function consultarParceiros() {
+            const checkboxes = document.querySelectorAll('input[name="idParceiro"]:checked');
+
+            for (const checkbox of checkboxes) {
+                const idParceiro = checkbox.value;
+                const apiUrl = `https://card.limbersoftware.com.br/api/cross/consulta/parceiro/${idParceiro}`;
+                const autenticacaoToken = localStorage.getItem("token");
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: "Bearer " + autenticacaoToken,
+                        },
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.nomeparceiro) {
+                            parceirosInfo.push({ idparceiro: idParceiro, nomeparceiro: data.nomeparceiro });
+                        } else {
+                            console.error(`Não foi possível obter informações para o parceiro com ID ${idParceiro}`);
+                        }
+                    } else {
+                        console.error(`Falha na consulta. Código de status: ${response.status}`);
+                        console.error(`Mensagem de erro: ${await response.text()}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao enviar requisição:', error);
+                }
+
+                // Aguarde 1 segundo entre as requisições
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            // Após obter todas as informações, exiba ou faça o que for necessário com parceirosInfo
+            console.log(parceirosInfo);
+        }
+
+        function criarCheckboxes(parceiros) {
+            var idParceiroContainer = document.getElementById('idParceiroContainer');
+
+            parceiros.forEach(parceiro => {
+                var checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'idParceiro';
+                checkbox.value = parceiro.idparceiro;
+
+                var label = document.createElement('label');
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(`${parceiro.idparceiro} - ${parceiro.nomeparceiro}`));
+
+                idParceiroContainer.appendChild(label);
+            });
+
+            // Adicione o botão de consulta após criar os checkboxes
+            var consultaButton = document.createElement('button');
+            consultaButton.type = 'button';
+            consultaButton.textContent = 'Consultar Parceiros';
+            consultaButton.onclick = consultarParceiros;
+
+            idParceiroContainer.appendChild(consultaButton);
+        }
+
+        async function consultarJSON() {
+            var apiUrl = "https://card.limbersoftware.com.br/api/cross/consulta/sku";
+            var autenticacaoToken = localStorage.getItem("token");
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + autenticacaoToken,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const parceiros = data.parceiros; // Suponha que a resposta contenha um array de parceiros
+                    criarCheckboxes(parceiros);
+                } else {
+                    console.error(`Falha na consulta. Código de status: ${response.status}`);
+                    console.error(`Mensagem de erro: ${await response.text()}`);
+                }
+            } catch (error) {
+                console.error('Erro ao enviar requisição:', error);
+            }
+        }
+
+        // Chamada inicial para carregar a lista de parceiros
+        consultarJSON();
+    </script>
+</body>
+
+</html>

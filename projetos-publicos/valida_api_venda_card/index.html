@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validação de API</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        #botoes-container {
+            width: 20%;
+            background-color: #f1f1f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1%;
+        }
+
+        #conteudo-container {
+            flex: 1;
+            padding: 20px;
+        }
+
+        button {
+            margin-bottom: 10px;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="botoes-container">
+        <button onclick="acaoBotao(1, 'consultas/testeRapido.html')">Teste Rápido</button>
+        <p> </p>
+        <button onclick="acaoBotao(2, 'consultaSKU.html')">SKU Disponíveis</button>
+        <button onclick="acaoBotao(3, 'consultaDispCalen.html')">Disponibilidade Calendário</button>
+        <button onclick="acaoBotao(4, 'consultaDispEstoqueCalen.html')">Disponibilidade Estoque</button>
+        <button onclick="acaoBotao(5, 'consultaDispAgrup.html')">Disponibilidade Agrupada</button>
+        <button onclick="acaoBotao(6, 'consultaPrecoSKU.html')">Preço SKU</button>
+        <button onclick="acaoBotao(7, 'consultaVendas.html')">Consulta Vendas</button>
+        <p> </p>
+        <button onclick="acaoBotao(8, 'reservaIngresso.html')">Reserva</button>
+        <button onclick="acaoBotao(9, 'inutilizaReserva.html')">Inutilização</button>
+        <button onclick="acaoBotao(10, 'pagamentoReserva.html')">Pagamento</button>
+        <button onclick="acaoBotao(11, 'transformaVenda.html')">Confirmação</button>
+        <button onclick="acaoBotao(12, 'cancelaVendaAutorizada.html')">Cancelamento</button>
+        <button onclick="acaoBotao(13, 'remarcacaoReserva.html')">Remarcação</button>
+    </div>
+    
+    <div id="conteudo-container">
+        <iframe id="iframe-container"></iframe>
+    </div>
+
+    <script>
+        function acaoBotao(botaoId, url) {
+            // Limpa o conteúdo atual
+            document.getElementById('iframe-container').src = 'about:blank';
+
+            // Atualiza o iframe com o novo conteúdo
+            if (url) {
+                document.getElementById('iframe-container').src = url;
+            }
+        }
+    </script>
+</body>
+</html>

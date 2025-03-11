@@ -1,0 +1,48 @@
+{
+    "idParceiro": 4187,
+    "meioVenda": "WEB",
+    "dataHora": "2024-02-02T11:45:22.271Z",
+    "totalLiquido": 0.00,
+    "pontoVenda": "Software Clubes Associados",
+    "ingressos": [
+        {
+            "CEP": null,
+            "IBGE": null,
+            "idCategoria": 4375,
+            "sku": 6965,
+            "uf": null,
+            "cEP": null,
+            "seq": 1,
+            "docVisitante": null,
+            "nomeVisitante": null,
+            "iBGE": null,
+            "contribFundo": null,
+            "municipio": null,
+            "idPais": null,
+            "receitas": [
+                {
+                    "valor": 0.00,
+                    "temporada": 1,
+                    "dataVisita": "2024-02-02",
+                    "progSeq": 1,
+                    "progHorario": 6965,
+                    "idReceita": 3094,
+                    "horarioStr": "16:00-17:00",
+                    "dataVisitaFim": "2024-02-02"
+                }
+            ],
+            "valorUnitario": 0.00,
+            "progSeq": 1,
+            "progHorario": 6965,
+            "tripulanteCodigo": null,
+            "moradorTipoDoc": null,
+            "emailVisitante": null,
+            "descricaoVenda": "0066201124011",
+            "qrCode": "CORE0000000001013",
+            "des_retorno": null,
+            "chave": null,
+            "tp_retorno": null
+        }
+    ],
+    "usuarioVenda": "Software Clubes Associados"
+}

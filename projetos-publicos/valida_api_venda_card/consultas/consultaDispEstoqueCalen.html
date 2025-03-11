@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta Disponibilidade (Estoque do SKU)</title>
+</head>
+<body>
+
+  <form id="consultaForm">
+    <label for="data">Data:</label>
+    <input type="datetime-local" id="data" name="data" required>
+    
+    <label for="sku">Código do SKU:</label>
+    <input type="text" id="sku" name="sku" required>
+
+    <label for="idParceiro">ID do Parceiro:</label>
+    <input type="text" id="idParceiro" name="idParceiro" required>
+
+    <label for="meioVenda">Meio de Venda:</label>
+    <input type="text" id="meioVenda" name="meioVenda" required>
+
+    <label for="localEmbarque">ID do Local de Embarque:</label>
+    <input type="text" id="localEmbarque" name="localEmbarque" required>
+
+    <label for="quantidade">Quantidade:</label>
+    <input type="number" id="quantidade" name="quantidade">
+
+    <label for="receita">Receita:</label>
+    <input type="text" id="receita" name="receita" required>
+
+    <label for="sessao">Código da Sessão:</label>
+    <input type="text" id="sessao" name="sessao" required>
+
+    <button type="button" onclick="consultarDispEstoqueCalen()">Iniciar</button>
+  </form>
+
+  <script>
+    function consultarDispEstoqueCalen() {
+      var data = document.getElementById('data').value;
+      var sku = document.getElementById('sku').value;
+      var idParceiro = document.getElementById('idParceiro').value;
+      var meioVenda = document.getElementById('meioVenda').value;
+      var localEmbarque = document.getElementById('localEmbarque').value;
+      var quantidade = document.getElementById('quantidade').value;
+      var receita = document.getElementById('receita').value;
+      var sessao = document.getElementById('sessao').value;
+
+      var requestData = {
+        data: data,
+        sku: sku,
+        idParceiro: idParceiro,
+        meioVenda: meioVenda,
+        localEmbarque: localEmbarque,
+        quantidade: quantidade,
+        receita: receita,
+        sessao: sessao
+      };
+      var jsonData = JSON.stringify(requestData);
+      var apiUrl = 'https://card.limbersoftware.com.br/api/cross/consulta/sku';
+      var autenticaotoken = token;
+      fetch(apiUrl, {
+        method: 'POST',
+        body: jsonData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // resposta
+        console.log(data);
+      })
+      .catch(error => {
+        //err
+        console.error('Erro na consulta:', error);
+      });
+    }
+  </script>
+
+</body>
+</html>

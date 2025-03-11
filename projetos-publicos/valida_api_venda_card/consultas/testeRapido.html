@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enviar Token</title>
+    <script>
+          async function consultarJSON() {
+            // Obter token do localStorage
+            var token = localStorage.getItem("token");
+
+            // Verificar se existe token
+            if (!token) {
+              console.error("Token não encontrado no localStorage");
+              return;
+            }
+
+            try {
+              // Fazer requisição para obter parceiros
+              const parceirosResponse = await fetch("https://card.limbersoftware.com.br/api/auth", {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+              });
+
+              if (!parceirosResponse.ok) {
+                throw new Error(`Falha na obtenção da lista de parceiros. Código de status: ${parceirosResponse.status}`);
+              }
+
+              const parceirosData = await parceirosResponse.json();
+
+              // Se tiver parceiros, pegar id do primeiro parceiro
+              var idParceiro;
+              if (parceirosData && parceirosData.length > 0) {
+                idParceiro = parceirosData[0].idparceiro;
+              } else {
+                console.error("Nenhum parceiro encontrado");
+                return;
+              }
+
+            } catch (error) {
+              console.error("Erro ao obter a lista de parceiros:", error.message);
+            }
+          }
+
+          async function consultarReceita(
+            token,
+            sku,
+            idParceiro,
+            dataAtual,
+            receitaId
+          ) {
+            var estoqueData = {
+              data: dataAtual,
+              sku: sku,
+              idParceiro: idParceiro,
+              meioVenda: "WEB",
+              quantidade: null,
+              receita: receitaId,
+            };
+
+            try {
+              const response = await fetch(
+                "https://testes.card.limbersoftware.com.br/api/cross/consulta/receita",
+                {
+                  method: "POST",
+                  body: JSON.stringify(estoqueData),
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + token,
+                  },
+                }
+              );
+
+                  if (!response.ok) {
+                throw new Error(
+                  `Falha na requisição de receita para SKU ${sku}. Código de status: ${response.status}`
+                );
+              }
+
+
+              const receitaData = await response.json();
+
+              // Faça algo com os detalhes da receita, por exemplo, adicionar à lista
+              var receitaItem = document.createElement("li");
+              receitaItem.textContent = `SKU: ${sku}, Detalhes da Receita: ${JSON.stringify(
+                receitaData
+              )}`;
+              document.getElementById("receitaList").appendChild(receitaItem);
+            } catch (error) {
+              // Trate o erro, por exemplo, exibindo uma mensagem
+              console.error(
+                `Erro na consulta de receita para SKU ${sku}: ${error.message}`
+              );
+            }
+          }
+          try {
+            const dataAtual = new Date().toISOString();
+
+            const estoqueData = {
+              data: dataAtual,
+              sku: sku,
+              idParceiro: idParceiro,
+              meioVenda: "WEB",
+              quantidade: null,
+              receita: 3178, // Substitua pelo valor real que você precisa
+            };
+
+            const response = await fetch(
+              "https://card.limbersoftware.com.br/api/cross/consulta/disponibilidade/estoque",
+              {
+                method: "POST",
+                body: JSON.stringify(estoqueData),
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + token,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(
+                `Falha na requisição de estoque para SKU ${sku}. Código de status: ${response.status}`
+              );
+            }
+
+            const responseData = await response.json();
+            const prog_horario = responseData.prog_horario;
+            var proghorarioItem = document.createElement("li");
+            proghorarioItem.textContent = `SKU: ${sku}, proghorario: ${prog_horario}`;
+            document
+              .getElementById("proghorarioList")
+              .appendChild(proghorarioItem);
+
+            return prog_horario;
+          } catch (error) {
+            console.error(
+              `Erro na obtenção de proghorario para SKU ${sku}: ${error.message}`
+            );
+            return null;
+          }
+        function gerarCPF() {
+          const cpfParcial = Math.floor(Math.random() * 1000000000)
+            .toString()
+            .padStart(9, "0");
+          const digito1 = calcularDigitoVerificador(cpfParcial);
+          const digito2 = calcularDigitoVerificador(cpfParcial + digito1);
+          return `${cpfParcial.slice(0, 3)}.${cpfParcial.slice(
+            3,
+            6
+          )}.${cpfParcial.slice(6)}-${digito1}${digito2}`;
+        }
+
+        function calcularDigitoVerificador(cpfParcial) {
+          const multiplicadores = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+          const soma = cpfParcial
+            .split("")
+            .reduce(
+              (acc, digit, index) =>
+                acc + parseInt(digit) * multiplicadores[index],
+              0
+            );
+          const resto = soma % 11;
+          return resto < 2 ? 0 : 11 - resto;
+        }
+
+        const cpfGerado = gerarCPF();
+        console.log(cpfGerado);
+        var idParceiro = document.getElementById("idParceiro").value;
+        var token = document.getElementById("token").value;
+        var data = {
+          idParceiro: idParceiro,
+          sku: 0,
+        };
+        var jsonData = JSON.stringify(data);
+        var apiUrl =
+          "https://card.limbersoftware.com.br/api/cross/consulta/sku";
+        // USE ESSA VARIÁVEL PARA AUTENTICAR O TOKEN (DEPOIS VOU FAZER UMA FUNÇÃO PRA USAR EM TODO O CÓDIGO)
+        var autenticacaoToken = token;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            body: jsonData,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              `Falha na requisição. Código de status: ${response.status}`
+            );
+          }
+
+          const data = await response.json();
+
+          // Limpar a lista de SKUs
+          document.getElementById("skuList").innerHTML = "";
+          // Limpar a lista de disponibilidade
+          document.getElementById("disponibilidadeList").innerHTML = "";
+          // Limpar a lista de estoque
+          document.getElementById("estoqueList").innerHTML = "";
+
+          // Verificar se há dados retornados
+          if (data.length === 0) {
+            throw new Error("Nenhum SKU encontrado.");
+          }
+
+          // Iterar sobre os objetos no array e criar elementos de lista para cada SKU
+          for (const item of data) {
+            var sku = item.sku;
+            var nome = item.nome;
+
+            // Adicionar SKU na lista
+            var listItem = document.createElement("li");
+            listItem.textContent = `SKU: ${sku}, Nome: ${nome}`;
+            document.getElementById("skuList").appendChild(listItem);
+
+            // Chama função para consultar disponibilidade com atraso de 1 segundo pq ta fazendo muitos requests
+            await sleep(1000);
+            consultarDisponibilidade(token, idParceiro, sku, item.receitas);
+          }
+        } catch (error) {
+          // mostra mensagens de erro na div
+          document.getElementById(
+            "responseDiv"
+          ).innerHTML = `<p>Erro na consulta: ${error.message}</p>`;
+        }
+
+        async function consultarDisponibilidade(
+        token,
+        idParceiro,
+        sku,
+        receitas
+      ) {
+        // data de amanhã
+        var amanha = new Date();
+        amanha.setDate(amanha.getDate() + 1);
+
+        // Converte para o formato AAAA-MM-DD
+        var dataAmanhaFormatada = amanha.toISOString().split("T")[0];
+        var dataInicial = dataAmanhaFormatada;
+        var dataFinal = dataAmanhaFormatada;
+
+        var disponibilidadeData = {
+          dataInicial: dataInicial,
+          dataFinal: dataFinal,
+          sku: sku,
+          idParceiro: idParceiro,
+          meioVenda: "WEB",
+          quantidade: null,
+        };
+
+        try {
+          const response = await fetch(
+            "https://card.limbersoftware.com.br/api/cross/consulta/disponibilidade/calendario",
+            {
+              method: "POST",
+              body: JSON.stringify(disponibilidadeData),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            // Continuar mesmo se tiver um erro
+            console.error(
+              `Erro na requisição de disponibilidade para SKU ${sku}. Código de status: ${response.status}`
+            );
+            // Adicionar mensagem de erro na lista de disponibilidade
+            var disponibilidadeErroItem = document.createElement("li");
+            disponibilidadeErroItem.textContent = `Erro na requisição de disponibilidade para SKU ${sku}. Código de status: ${response.status}`;
+            document
+              .getElementById("disponibilidadeList")
+              .appendChild(disponibilidadeErroItem);
+            return; // Ignorar o restante do bloco e continuar para o próximo SKU
+          }
+
+          const disponibilidade = await response.json();
+
+          // Adicionar disponibilidade à lista
+          var disponibilidadeItem = document.createElement("li");
+          disponibilidadeItem.textContent = `SKU: ${sku}, Disponibilidade: ${JSON.stringify(
+            disponibilidade
+          )}`;
+          document
+            .getElementById("disponibilidadeList")
+            .appendChild(disponibilidadeItem);
+
+          // Chamar função para consultar estoque com atraso de 1 segundo
+          await sleep(1500);
+          consultarEstoque(token, idParceiro, sku, receitas);
+        } catch (error) {
+          // Continuar mesmo se houver um erro
+          console.error(
+            `Erro na consulta de disponibilidade para SKU ${sku}: ${error.message}`
+          );
+          // Adicionar mensagem de erro à lista de disponibilidade
+          var disponibilidadeErroItem = document.createElement("li");
+          disponibilidadeErroItem.textContent = `Erro na consulta de disponibilidade para SKU ${sku}: ${error.message}`;
+          document
+            .getElementById("disponibilidadeList")
+            .appendChild(disponibilidadeErroItem);
+        }
+      }
+
+      async function consultarEstoque(token, idParceiro, sku, receitas) {
+        var dataAtual = new Date().toISOString();
+
+        var estoqueData = {
+          data: dataAtual,
+          sku: sku,
+          idParceiro: idParceiro,
+          meioVenda: "WEB",
+          quantidade: null,
+          receita: consultarReceita, // Usando a receita do array gerado na function
+        };
+
+        try {
+          const response = await fetch(
+            "https://card.limbersoftware.com.br/api/cross/consulta/disponibilidade/estoque",
+            {
+              method: "POST",
+              body: JSON.stringify(estoqueData),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              `Falha na requisição de estoque para SKU ${sku}. Código de status: ${response.status}`
+            );
+          }
+
+          const estoque = await response.json();
+
+          // Adicionar estoque
+          var estoqueItem = document.createElement("li");
+          estoqueItem.textContent = `SKU: ${sku}, Estoque: ${JSON.stringify(
+            estoque
+          )}`;
+          document.getElementById("estoqueList").appendChild(estoqueItem);
+        } catch (error) {
+          //  mensagens de erro na div
+          document.getElementById(
+            "responseDiv"
+          ).innerHTML = `<p>Erro na consulta de estoque: ${error.message}</p>`;
+        }
+      }
+
+      // Função para criar um delay
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+      async function realizarVendas() {
+        var idParceiro = document.getElementById("idParceiro").value;
+        var token = document.getElementById("token").value;
+
+        // Pegar a lista de SKUs
+        var listaSKUs = [
+          /* Adicionar a function para a lista (está sobrecarregando os requests) */
+        ];
+
+        // Função para realizar a venda para cada SKU
+        async function realizarVendaPorSKU(sku) {
+          try {
+            // request para a venda
+            var vendaData = {
+              dataHora: new Date().toISOString(),
+              totalLiquido: 0,
+              idParceiro: idParceiro,
+              pontoVenda: "Validacao API",
+              usuarioVenda: "Validacao API",
+              meioVenda: "WEB",
+              campanhaVenda: "teste de venda",
+              titularNome: "Validacao API",
+              titularDoc: gerarCPF(),
+              titularEmail: "teste@teste.com.br",
+              idOrigem: 0,
+              ingressos: [
+                {
+                  seq: 1,
+                  uf: "PR",
+                  idPais: 1,
+                  sku: sku,
+                  idCategoria: 1,
+                  valorUnitario: 0,
+                  nomeVisitante: "Teste04",
+                  docVisitante: "000.000.000-00",
+                  moradorTipoDoc: "CPF",
+                  emailVisitante: "teste01@teste.com.br",
+                  descricaoVenda: null,
+                  contribFundo: "N",
+                  receitas: [
+                    {
+                      horarioStr: "09:00-15:00",
+                      progseq: 1,
+                      proghorario: obterProghorario,
+                      temporada: 1,
+                      idReceita: consultarReceita,
+                      valor: 0,
+                      dataVisita: new Date().toISOString().split("T")[0], // Formato "AAAA-MM-DD", usando a data atual se o horário for menor que 17:00:00
+                    },
+                  ],
+                },
+              ],
+            };
+
+            const response = await fetch(
+            "https://testes.card.limbersoftware.com.br/api/cross/integra/venda",
+            {
+              method: "POST",
+              body: JSON.stringify(vendaData),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              `Falha na requisição de venda para SKU ${sku}. Código de status: ${response.status}`
+            );
+          }
+
+          const vendaResult = await response.json();
+
+          // Adicionar venda realizada na lista
+          var vendaItem = document.createElement("li");
+          vendaItem.textContent = `SKU: ${sku}, Resultado da Venda: ${JSON.stringify(
+            vendaResult
+          )}`;
+          document.getElementById("vendaList").appendChild(vendaItem);
+        } catch (error) {
+          // Exibir mensagens de erro na div
+          document.getElementById(
+            "responseDiv"
+          ).innerHTML = `<p>Erro na realização de venda: ${error.message}</p>`;
+        }
+      }
+
+      // Iterar sobre a lista de SKUs e realizar vendas
+      for (const sku of listaSKUs) {
+        // Adicionar um pequeno delay entre as vendas
+        await sleep(1000);
+        await realizarVendaPorSKU(sku);
+      }
+    }
+    </script>
+    <style>
+      /* organiza as listas do lado da outra */
+      ul {
+        list-style-type: none;
+        display: inline-block;
+        margin-right: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Teste Rápido</h2>
+      <form>
+        <button type="button" onclick="consultarJSON()">Enviar</button>
+      </form>
+
+      <div id="responseDiv">
+        <!--resposta requisiçãoda -->
+      </div>
+
+      <!-- div para as listas -->
+      <div class="lists-container">
+        <ul id="skuList">
+          <!--lista de SKUs -->
+        </ul>
+
+        <ul id="disponibilidadeList">
+          <!-- lista de disponibilidade -->
+        </ul>
+
+        <ul id="estoqueList">
+          <!-- lista de estoque -->
+        </ul>
+
+        <ul id="vendaList">
+          <!-- Lista de vendas -->
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

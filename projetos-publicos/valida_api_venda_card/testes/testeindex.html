@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+ .flex-container {
+    display: flex;
+    justify-content: space-around;
+ }
+ .button {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+ }
+</style>
+</head>
+<body>
+
+<h1>Teste Rápido</h1>
+
+<form action="">
+ <label for="validation">Selecione as Validações:</label><br>
+ <input type="checkbox" id="all" name="all" value="Todos">
+ <label for="all">Todos</label><br>
+ <input type="checkbox" id="sku" name="sku" value="Consulta SKU Disponíveis">
+ <label for="sku">Consulta SKU Disponíveis</label><br>
+ <input type="checkbox" id="calendar" name="calendar" value="Consulta Calendário">
+ <label for="calendar">Consulta Calendário</label><br>
+ <input type="checkbox" id="reset" name="reset" value="Reiniciar">
+ <label for="reset">Reiniciar</label><br>
+ <input type="checkbox" id="stock" name="stock" value="Consulta Estoque">
+ <label for="stock">Consulta Estoque</label><br>
+ <input type="checkbox" id="stockGrouped" name="stockGrouped" value="Consulta Estoque Agrupado">
+ <label for="stockGrouped">Consulta Estoque Agrupado</label><br>
+ <input type="checkbox" id="price" name="price" value="Consulta Preço SKU">
+ <label for="price">Consulta Preço SKU</label><br>
+</form>
+
+<div class="flex-container">
+ <button class="button" id="start">Iniciar</button>
+ <button class="button" id="stop">Parar</button>
+</div>
+
+</body>
+</html>

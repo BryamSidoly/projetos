@@ -1,0 +1,340 @@
+código que funciona:
+
+index.html:
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta SKU</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <header>
+        <h1>Consulta de Produtos</h1>
+    </header>
+
+    <div id="resultContainer" class="product-container"></div>
+
+    <!-- Modal -->
+    <div id="calendarModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Detalhes do Produto</h2>
+            <input type="text" id="calendarInput" placeholder="Escolha uma data">
+            <div>
+                <label for="embarque">Local de Embarque:</label>
+                <input type="text" id="embarque" placeholder="Digite o local de embarque">
+            </div>
+            <div>
+                <label for="sessao">Sessão:</label>
+                <input type="text" id="sessao" placeholder="Digite a sessão">
+            </div>
+            <div>
+                <label for="horario">Horário:</label>
+                <input type="text" id="horario" placeholder="Digite o horário">
+            </div>
+            <button id="confirmButton">Confirmar</button>
+        </div>
+    </div>
+
+    <script src="scripts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</body>
+</html>
+
+
+styles.css:
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #007BFF;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.loading, .error, .message {
+    text-align: center;
+}
+
+.loading {
+    color: #007BFF;
+}
+
+.error {
+    color: #FF0000;
+}
+
+.product {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 280px;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.product:hover {
+    transform: translateY(-10px);
+}
+
+.product img {
+    max-width: 100%;
+    max-height: 150px;
+    border-radius: 8px;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.product-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.product-description {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    color: #666;
+}
+
+.product-price {
+    color: green;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.product-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+/* Estilos do Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#calendarInput, #embarque, #sessao, #horario {
+    padding: 10px;
+    font-size: 16px;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+
+scripts.js:
+
+const corsProxy = 'https://cors-anywhere.herokuapp.com/'; // Proxy para contornar CORS
+const idParceiro = 1348; // ID do parceiro definido automaticamente
+
+async function fetchAuthToken() {
+    const authApiUrl = 'https://testescard.limbersoftware.com.br/api/auth';
+    const credentials = {
+        usuario: 'Reservas.API',
+        senha: 'Reservas.API123'
+    };
+
+    try {
+        const response = await fetch(corsProxy + authApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(credentials)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+            return data.token;
+        } else {
+            throw new Error('Token não encontrado na resposta.');
+        }
+    } catch (error) {
+        console.error('Erro ao buscar o token de autenticação:', error);
+        showError('Erro ao buscar o token de autenticação.');
+        return null;
+    }
+}
+
+async function consultarProdutos(token) {
+    const apiUrl = 'https://testescard.limbersoftware.com.br/api/cross/consulta/sku';
+
+    document.getElementById('resultContainer').innerHTML = '<p class="loading">Consultando produtos...</p>';
+
+    try {
+        const response = await fetch(corsProxy + apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                idparceiro: idParceiro, // Usar o ID do parceiro definido automaticamente
+                sku: 0
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Dados recebidos:', data); // Log para verificar a estrutura dos dados
+            if (Array.isArray(data)) {
+                displayProdutos(data);
+            } else {
+                throw new Error('Dados inválidos recebidos. Estrutura esperada: Array de produtos.');
+            }
+        } else {
+            throw new Error(`Falha na consulta. Código de status: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Erro ao enviar requisição:', error);
+        showError('Erro ao consultar produtos.');
+    }
+}
+
+function displayProdutos(produtos) {
+    const resultContainer = document.getElementById('resultContainer');
+    resultContainer.innerHTML = '';
+
+    produtos.forEach(produto => {
+        const productDiv = document.createElement('div');
+        productDiv.className = 'product';
+        productDiv.innerHTML = `
+            <img src="${produto.imagemURL || 'https://via.placeholder.com/150'}" alt="${produto.nome}">
+            <div class="product-title">${produto.nome}</div>
+            <div class="product-description">${produto.descricao || 'Sem descrição'}</div>
+            <div class="product-price">R$ ${produto.preco ? produto.preco.toFixed(2) : '0.00'}</div>
+        `;
+
+        // Adiciona o evento de clique ao produto
+        productDiv.addEventListener('click', () => showCalendarModal(produto));
+
+        resultContainer.appendChild(productDiv);
+    });
+}
+
+function showError(message) {
+    document.getElementById('resultContainer').innerHTML = `<p class="error">${message}</p>`;
+}
+
+function showCalendarModal(produto) {
+    // Abre o modal
+    const modal = document.getElementById('calendarModal');
+    modal.style.display = 'block';
+
+    // Configura o Flatpickr para o input do calendário
+    flatpickr("#calendarInput", {
+        minDate: "today",
+        dateFormat: "d/m/Y",
+        onChange: (selectedDates, dateStr, instance) => {
+            console.log("Data selecionada:", dateStr);
+        }
+    });
+
+    // Adiciona lógica para o botão de confirmar
+    document.getElementById('confirmButton').addEventListener('click', () => {
+        const embarque = document.getElementById('embarque').value;
+        const sessao = document.getElementById('sessao').value;
+        const horario = document.getElementById('horario').value;
+        const data = document.getElementById('calendarInput').value;
+
+        // Aqui você pode enviar esses dados para o servidor ou fazer o que precisar
+        console.log('Dados do produto:', produto);
+        console.log('Local de Embarque:', embarque);
+        console.log('Sessão:', sessao);
+        console.log('Horário:', horario);
+        console.log('Data selecionada:', data);
+
+        modal.style.display = 'none'; // Fecha o modal após confirmação
+    });
+
+    // Fecha o modal quando clicar na X
+    document.querySelector('.close').addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    // Fecha o modal quando clicar fora do modal
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = await fetchAuthToken();
+    if (token) {
+        await consultarProdutos(token);
+    }
+});

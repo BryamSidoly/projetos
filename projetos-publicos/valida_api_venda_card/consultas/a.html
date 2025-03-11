@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Omie API</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <label for="pageNumber">Página:</label>
+  <input type="number" id="pageNumber" value="1">
+  <button onclick="makeRequest()">Fazer Requisição</button>
+  <button onclick="exportToExcel()">Exportar para Excel</button>
+  <div id="resultTable"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
+  <script>
+    async function makeRequest() {
+      const selectedPage = document.getElementById("pageNumber").value;
+      const corsProxy = "https://cors-anywhere.herokuapp.com/";
+      const authUrl = "https://app.omie.com.br/api/v1/geral/clientes/";
+
+      const requestInfo = {
+        url: corsProxy + authUrl,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          call: "ListarClientes",
+          app_key: "1964957035041",
+          app_secret: "9ad2878b042cfdeb4c84051db760edfc",
+          param: [
+            {
+              pagina: selectedPage,
+              registros_por_pagina: 1000,
+              apenas_importado_api: "N",
+            },
+          ],
+        }),
+        mode: "cors",
+        timeout: 10000,
+      };
+
+      try {
+        const response = await fetch(requestInfo.url, requestInfo);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const table = document.createElement("table");
+        table.id = "dataTable";  
+
+        const headerRow = table.insertRow(0);
+
+        const flattenObject = (obj, prefix = '') => {
+          const flatObj = {};
+          for (const [key, value] of Object.entries(obj)) {
+            if (key !== 'info' && key !== 'dadosBancarios') {
+              if (key === 'cidade_ibge' && value === 'N') {
+                continue; // Skip the column when 'N' is in the column C
+              }
+
+              if (typeof value === 'object' && value !== null) {
+                Object.assign(flatObj, flattenObject(value, `${prefix}${key}_`));
+              } else {
+                flatObj[`${prefix}${key}`] = value;
+              }
+            }
+          }
+          return flatObj;
+        };
+
+        const flatHeaders = flattenObject(data.clientes_cadastro[0]);
+        Object.keys(flatHeaders).forEach((key) => {
+          const th = document.createElement("th");
+          th.textContent = key;
+          headerRow.appendChild(th);
+        });
+
+        data.clientes_cadastro.forEach((cliente) => {
+          if (cliente.cidade_ibge !== 'N') {
+            const flatData = flattenObject(cliente);
+            const row = table.insertRow();
+            let columnIndex = 0;
+
+            Object.values(flatData).forEach((value) => {
+              if (columnIndex !== 2 || value !== 'N') {
+                const td = document.createElement("td");
+                td.textContent = value === undefined ? '' : value;
+                row.appendChild(td);
+              }
+              columnIndex++;
+            });
+          }
+        });
+
+        const resultTable = document.getElementById("resultTable");
+        resultTable.innerHTML = "";
+        resultTable.appendChild(table);
+
+      } catch (error) {
+        console.error("Erro na requisição:", error);
+      }
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById("dataTable");
+      const ws = XLSX.utils.table_to_sheet(table);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      XLSX.writeFile(wb, "data.xlsx");
+    }
+  </script>
+</body>
+</html>

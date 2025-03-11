@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultar Dados da Tabela</title>
+</head>
+<body>
+
+<button onclick="iniciarAPI()">Consultar Dados</button>
+
+<div id="resultado"></div>
+
+<script>
+  // Função para inicializar a API do Google Sheets
+  function iniciarAPI() {
+    // Carregar a API do Google Sheets
+    gapi.load('client', function() {
+      console.log('API do Google Sheets carregada.');
+      // Inicializar a API do Google Sheets
+      gapi.client.init({
+        apiKey: 'AIzaSyBZOeIu4qI4q_abWoQ76M9_EtOGraKuSzo',
+        discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest'],
+      }).then(function() {
+        console.log('API do Google Sheets inicializada.');
+        // Uma vez que a API do Google Sheets esteja inicializada, chamar a função para consultar os dados
+        consultarDados();
+      }, function(response) {
+        console.error('Erro ao inicializar API do Google Sheets:', response.result.error.message);
+      });
+    });
+  }
+
+  // Função para consultar dados do Google Sheets
+  function consultarDados() {
+    // ID da planilha do Google Sheets
+    var spreadsheetId = '1e56rz0olVpiaVcD8jWg3XObhdatpfyJxfdUs0e2UWVA';
+    // Intervalo de células que contêm os dados
+    var range = 'A1:G';
+
+    // Requisição para a API do Google Sheets
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: range,
+    }).then(function(response) {
+      var values = response.result.values;
+      var resultado = document.getElementById('resultado');
+      if (values.length > 0) {
+        // Criar uma tabela HTML para exibir os dados
+        var table = '<table border="1">';
+        for (var row = 0; row < values.length; row++) {
+          table += '<tr>';
+          for (var col = 0; col < values[row].length; col++) {
+            table += '<td>' + values[row][col] + '</td>';
+          }
+          table += '</tr>';
+        }
+        table += '</table>';
+        // Exibir a tabela no elemento 'resultado'
+        resultado.innerHTML = table;
+      } else {
+        resultado.innerHTML = 'Nenhum dado encontrado.';
+      }
+    }, function(response) {
+      resultado.innerHTML = 'Erro ao consultar os dados.';
+      console.error('Erro ao consultar os dados:', response.result.error.message);
+    });
+  }
+</script>
+
+<!-- Importar a biblioteca da API do Google Sheets -->
+<script src="https://apis.google.com/js/api.js"></script>
+
+</body>
+</html>
